@@ -156,7 +156,146 @@ class Coloracion:
         return solucion_actual
         
         
+    def genera_poblacion_inicial(self, tamanio_poblacion):
+        """Genera una población inicial con un tamaño especificado
+
+        Args:
+            tamanio_poblacion (int): Tamaño de la población a generar
+
+        Returns:
+            array(array(int)): Población generada
+        """
+        return np.random.randint(1, self.vertices+1, size = (tamanio_poblacion, self.vertices))
+    
+    def seleccion_padres_torneo(self, poblacion_actual):
+        """Función para seleccionar a 2 padres de la poblacion dada
+
+        Args:
+            poblacion_actual (array(array(int))): Poblacion actual
+
+        Returns:
+            tuple: Ambos padres seleccionados
+        """
+        padre1, padre2 = None, None
+        for j in range(2):
+            indices_individuos = np.random.choice(len(poblacion_actual), size=int(len(poblacion_actual)/10), replace=False)
+            individuos = [poblacion_actual[i] for i in indices_individuos]
+            mejor_evaluacion = float("inf")
+            mejor_individuo_actual = None
+            for i in individuos:
+                if self.funcion_evaluacion(i) < mejor_evaluacion:
+                    mejor_evaluacion = self.funcion_evaluacion(i)
+                    mejor_individuo_actual = i
+            if j == 0:
+                padre1 = mejor_individuo_actual
+            else:
+                padre2 =mejor_individuo_actual
+        return padre1, padre2
+        
+    def selecciona_mejor_individuo(self, poblacion):
+        """Funcion para encontrar al mejor individuo de la poblacion actual
+
+        Args:
+            poblacion (array(array(int))): Poblacion actual
+
+        Returns:
+            array(int): Mejor individuo de la poblacion actuaL
+        """
+        mejor_evaluacion = float("inf")
+        mejor_individuo = None
+        for i in poblacion:
+            evaluacion = self.funcion_evaluacion(i)
+            if evaluacion < mejor_evaluacion:
+                mejor_evaluacion = evaluacion
+                mejor_individuo = i
+        return mejor_individuo
+        
+    def cruza_padres(self, padre1, padre2):
+        """Cruza a los padres para generar a los hijos
+
+        Args:
+            padre1 (array(int)): Primer padre
+            padre2 (array(int)): Segundo padre
+
+        Returns:
+            tuple: Hijos resultantes de la cruza 
+        """
+        mitad = int(len(padre1)/2)
+        hijo1 = []
+        hijo2 = []
+        for i in range(len(padre1)):
+            if i < mitad:
+                hijo1.append(padre1[i])
+                hijo2.append(padre2[i])
+            else:
+                hijo1.append(padre2[i])
+                hijo2.append(padre1[i])
+        return hijo1, hijo2
+    
+    def mutacion(self, hijo):
+        """Funcion para aplicar la mutacion a un hijo
+
+        Args:
+            hijo (array(int)): Hijo que mutara
+        
+        Returns:
+            (array(int)): hijo con o sin mutacion
+        """
+        if np.random.random() <= 0.1:
+            indice1 = np.random.randint(0, len(hijo))
+            indice2 = np.random.randint(0, len(hijo))
+            aux = hijo[indice1]
+            hijo[indice1] = hijo[indice2]
+            hijo[indice2] = aux
+        return hijo
+    
+    def genera_siguiente_poblacion(self, poblacion):
+        """Funcion para generar la siguiente poblacion, se mantiene la mejor solucion actual
+
+        Args:
+            poblacion (array(array(int))): Poblacion actual
+
+        Returns:
+            array(array(int)): Nueva poblacion
+        """
+        hijos = []
+        hijos.append(self.selecciona_mejor_individuo(poblacion))
+        while len(hijos) < len(poblacion):
+            padre1, padre2 = self.seleccion_padres_torneo(poblacion)
+            hijo1, hijo2 = None, None
+            if np.random.random() <= 0.7:
+                hijo1, hijo2 = self.cruza_padres(padre1, padre2)
+            else:
+                hijo1 = padre1
+                hijo2 = padre2
+            hijo1 = self.mutacion(hijo1)
+            hijo2 = self.mutacion(hijo2)
+            hijos.append(hijo1)
+            hijos.append(hijo2)
+        return hijos
             
+        
+    def algoritmo_genetico(self, tamanio_poblacion, iteraciones=1000):
+        """Funcion que ejecuta el algoritmo genetico para coloracion
+
+        Args:
+            tamanio_poblacion (int): Tamaño de la poblacion
+            iteraciones (int, optional): Número de iteraciones a realizar en el algoritmo. Defaults to 1000.
+
+        Returns:
+            array(int): La mejor solución encontrada
+        """
+        file = open('Ejecucion.txt', 'w')
+        poblacion = self.genera_poblacion_inicial(tamanio_poblacion)
+        mejor_solucion = None
+        for i in range(iteraciones):
+            mejor_solucion = self.selecciona_mejor_individuo(poblacion)
+            mejor_evaluacion = self.funcion_evaluacion(mejor_solucion)
+            file.write(str(i) + " " + str(mejor_evaluacion) + "\n")
+            poblacion = self.genera_siguiente_poblacion(poblacion)
+        file.close()
+        return mejor_solucion, mejor_evaluacion
+                
     
     def realiza_busqueda(self, busqueda, iteraciones):
         """ Función para realizar la búsqueda especificada
@@ -176,10 +315,15 @@ class Coloracion:
             print(f"Resultado de la busqueda local iterada: {solucion_iterada} con evaluacion de {self.funcion_evaluacion(solucion_iterada)}")
         else:
             print("Para seleccionar una busqueda debe escribir aleatoria o escalada")
-    
+            
+coloracion = Coloracion.leer_archivo("Grafo.txt")
+ind,eva = coloracion.algoritmo_genetico(50,1000)
+print(ind + " " + eva)
+        
+"""
 if __name__ == "__main__":
-    """Main donde se procesará el archivo ingresado y realizará la búsqueda especificada
-    """
+    """"""Main donde se procesará el archivo ingresado y realizará la búsqueda especificada
+    """"""
     if len(sys.argv) < 3:
         print("Uso: python Coloracion.py <nombre_archivo> <busqueda>")
     else:
@@ -191,3 +335,4 @@ if __name__ == "__main__":
             coloracion.realiza_busqueda(busqueda, int(sys.argv[3]))
         else:
             coloracion.realiza_busqueda(busqueda, 1000)
+            """  
