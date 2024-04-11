@@ -73,25 +73,47 @@ class AlgoritmoGenetico:
             nueva_generacion.extend([hijo1_mutado, hijo2_mutado])
         return nueva_generacion
 
+    def encuentra_peor(self, evaluaciones, peor):
+        peor_candidato = max(evaluaciones, key=lambda x: x[1])[1]
+        if peor_candidato > peor:
+            return peor_candidato
+        else:
+            return peor 
+
+    def calcula_promedio(self, evaluaciones, promedio_actual):
+        suma = 0
+        for i in range(len(evaluaciones)):
+            suma += evaluaciones[i][1]
+        suma /= len(evaluaciones)    
+        promedio_actual += suma
+        return promedio_actual/2
+
     def ejecutar(self):
         poblacion = self.inicializar_poblacion()
         mejor_aptitud_por_generacion = []
+        peor = 0
+        promedio = 0
+        mejor = float("inf")
         for _ in range(self.num_generaciones):
             evaluaciones = self.evaluar_poblacion(poblacion)
             mejor_aptitud = min(evaluaciones, key=lambda x: x[1])[1]
+            if mejor > mejor_aptitud:
+                mejor = mejor_aptitud
+            peor = self.encuentra_peor(evaluaciones, peor)
+            promedio += self.calcula_promedio(evaluaciones, promedio)
             mejor_aptitud_por_generacion.append(mejor_aptitud)
             poblacion = self.reemplazar_generacional(poblacion, evaluaciones)
-        return poblacion, mejor_aptitud_por_generacion
+        return poblacion, mejor_aptitud_por_generacion, mejor, peor, promedio
 
 def graficar_evolucion(funcion_objetivo, dominio, titulo):
     ag = AlgoritmoGenetico(funcion_objetivo, dominio)
-    _, mejor_aptitud_por_generacion = ag.ejecutar()
+    _, mejor_aptitud_por_generacion, mejor,  peor, promedio = ag.ejecutar()
     plt.plot(mejor_aptitud_por_generacion)
     plt.title(titulo)
     plt.xlabel("Generación")
     plt.ylabel("Mejor Aptitud")
     plt.show()
-    return mejor_aptitud_por_generacion
+    return mejor_aptitud_por_generacion, mejor,  peor, promedio
 
 def ejecutar_experimentos(funciones, dominios, num_ejecuciones=30):
     resultados = {}
@@ -129,10 +151,11 @@ funciones = {
 
 for nombre_funcion, funcion in funciones.items():
     titulo = f"Evolución de Aptitud para {nombre_funcion}"
-    mejor_aptitud_por_generacion = graficar_evolucion(funcion, dominios[nombre_funcion], titulo)
+    mejor_aptitud_por_generacion, mejor, peor, promedio = graficar_evolucion(funcion, dominios[nombre_funcion], titulo)
+    print(f"Función {nombre_funcion}. Mejor: {mejor}. Peor: {peor}. Promedio: {promedio}")
 
-print("\nResultados estadísticos:")
+""" print("\nResultados estadísticos:")
 print("{:<10} {:<10} {:<10} {:<10}".format("Función", "Mejor", "Peor", "Promedio"))
 resultados = ejecutar_experimentos(funciones, dominios)
 for nombre_funcion, res in resultados.items():
-    print("{:<10} {:<10.2f} {:<10.2f} {:<10.2f}".format(nombre_funcion, res["mejor"], res["peor"], res["promedio"]))
+    print("{:<10} {:<10.2f} {:<10.2f} {:<10.2f}".format(nombre_funcion, res["mejor"], res["peor"], res["promedio"])) """
