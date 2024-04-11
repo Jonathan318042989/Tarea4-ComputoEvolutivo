@@ -2,7 +2,7 @@ import random
 import math
 import numpy as np
 import matplotlib.pyplot as plt
-from Funciones import Funciones
+from Funciones import *
 from Codificacion import Codificacion
 
 class AlgoritmoGenetico:
@@ -20,13 +20,13 @@ class AlgoritmoGenetico:
     
     def obtener_dominio(self, nombre_funcion):
         if nombre_funcion in ["sphere", "rastrigin"]:
-            return Funciones.dominio_sphere_rastrigin
+            return dominio_sphere_rastrigin
         elif nombre_funcion == "ackley":
-            return Funciones.dominio_ackley
+            return dominio_ackley
         elif nombre_funcion == "griewank":
-            return Funciones.dominio_griewank
+            return dominio_griewank
         elif nombre_funcion == "rosenbrock":
-            return Funciones.dominio_rosenbrock
+            return dominio_rosenbrock
         else:
             raise ValueError("Función no reconocida")
 
@@ -96,8 +96,8 @@ class AlgoritmoGenetico:
             poblacion = self.reemplazar_generacional(poblacion, evaluaciones)
         return mejor_aptitud_por_generacion
 
-def graficar_evolucion(funcion_objetivo, longitud_cromosoma, dominio, titulo):
-    ag = AlgoritmoGenetico(funcion_objetivo, longitud_cromosoma, dominio)
+def graficar_evolucion(funcion_objetivo, longitud_cromosoma, titulo):
+    ag = AlgoritmoGenetico(funcion_objetivo, longitud_cromosoma)
     mejor_aptitud_por_generacion = ag.ejecutar()
     plt.plot(mejor_aptitud_por_generacion)
     plt.title(titulo)
@@ -137,4 +137,4 @@ for nombre_funcion, res in resultados.items():
 
 for nombre_funcion, funcion in funciones.items():
     titulo = f"Evolución de {nombre_funcion}"
-    graficar_evolucion(funcion, 10, None, titulo)
+    graficar_evolucion(nombre_funcion, 10, titulo)
