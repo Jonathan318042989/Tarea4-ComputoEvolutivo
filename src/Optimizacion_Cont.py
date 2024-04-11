@@ -1,91 +1,78 @@
 import random
-import math
 import numpy as np
 import matplotlib.pyplot as plt
-from Funciones import *
-from Codificacion import Codificacion
+from Funciones import Funciones
 
 class AlgoritmoGenetico:
     
-    def __init__(self, nombre_funcion, longitud_cromosoma, tamano_poblacion=100, num_generaciones=100, prob_mutacion=0.1, elitismo=True):
-        self.nombre_funcion = nombre_funcion
-        self.funcion_objetivo = funciones[nombre_funcion]
-        self.longitud_cromosoma = longitud_cromosoma
-        self.dominio = self.obtener_dominio(nombre_funcion)
+    def __init__(self, funcion_objetivo, dominio, tamano_poblacion=100, num_generaciones=100, prob_mutacion=0.1, num_puntos_cruza=2, elitismo=True):
+        self.funcion_objetivo = funcion_objetivo
+        self.dominio = dominio
         self.tamano_poblacion = tamano_poblacion
         self.num_generaciones = num_generaciones
         self.prob_mutacion = prob_mutacion
+        self.num_puntos_cruza = num_puntos_cruza
         self.elitismo = elitismo
-        
-    
-    def obtener_dominio(self, nombre_funcion):
-        if nombre_funcion in ["sphere", "rastrigin"]:
-            return dominio_sphere_rastrigin
-        elif nombre_funcion == "ackley":
-            return dominio_ackley
-        elif nombre_funcion == "griewank":
-            return dominio_griewank
-        elif nombre_funcion == "rosenbrock":
-            return dominio_rosenbrock
-        else:
-            raise ValueError("Función no reconocida")
 
     def inicializar_poblacion(self):
         poblacion = []
         for _ in range(self.tamano_poblacion):
-            cromosoma = ''.join(random.choice('01') for _ in range(self.longitud_cromosoma))
-            poblacion.append(cromosoma)
+            solucion = [random.uniform(self.dominio[0], self.dominio[1]) for _ in range(len(self.dominio))]
+            poblacion.append(solucion)
         return poblacion
-    
+
     def evaluar_poblacion(self, poblacion):
         evaluaciones = []
-        for cromosoma in poblacion:
-            valores = Codificacion.decodifica_vector(cromosoma, self.longitud_cromosoma, *self.dominio)
-            evaluacion = self.funcion_objetivo(valores)
-            evaluaciones.append((cromosoma, evaluacion))
+        for individuo in poblacion:
+            evaluacion = self.funcion_objetivo(individuo)
+            evaluaciones.append((individuo, evaluacion))
         return evaluaciones
-    
+
     def seleccionar_padres(self, evaluaciones):
-        total_fitness = sum(1 / evaluacion[1] if evaluacion[1] != 0 else 1 for evaluacion in evaluaciones)
+        total_fitness = sum(1 / evaluacion[1] for evaluacion in evaluaciones)
         padres_seleccionados = []
         while len(padres_seleccionados) < 2:
             punto = random.uniform(0, total_fitness)
             acumulado = 0
-            for cromosoma, evaluacion in evaluaciones:
-                acumulado += 1 / evaluacion if evaluacion != 0 else 1
+            for individuo, evaluacion in evaluaciones:
+                acumulado += 1 / evaluacion
                 if acumulado > punto:
-                    padres_seleccionados.append(cromosoma)
+                    padres_seleccionados.append(individuo)
                     break
         return padres_seleccionados
 
     def cruzar_padres(self, padre1, padre2):
-        punto_cruza = random.randint(1, self.longitud_cromosoma - 1)
-        hijo1 = padre1[:punto_cruza] + padre2[punto_cruza:]
-        hijo2 = padre2[:punto_cruza] + padre1[punto_cruza:]
-        return hijo1, hijo2
-    
-    def mutar(self, cromosoma):
-        cromosoma_mutado = ''
-        for bit in cromosoma:
-            if random.random() < self.prob_mutacion:
-                cromosoma_mutado += '1' if bit == '0' else '0'
+        puntos_cruza = sorted(random.sample(range(len(padre1)), self.num_puntos_cruza))
+        hijo1 = []
+        hijo2 = []
+        for i in range(len(padre1)):
+            if i in puntos_cruza:
+                hijo1.append(padre2[i])
+                hijo2.append(padre1[i])
             else:
-                cromosoma_mutado += bit
-        return cromosoma_mutado
-    
+                hijo1.append(padre1[i])
+                hijo2.append(padre2[i])
+        return hijo1, hijo2
+
+    def mutar(self, individuo):
+        for i in range(len(individuo)):
+            if random.random() < self.prob_mutacion:
+                individuo[i] = random.uniform(self.dominio[0], self.dominio[1])
+        return individuo
+
     def reemplazar_generacional(self, poblacion, evaluaciones):
         nueva_generacion = []
         if self.elitismo:
-            mejor_cromosoma = min(evaluaciones, key=lambda x: x[1])[0]
-            nueva_generacion.append(mejor_cromosoma)
+            mejor_solucion = min(evaluaciones, key=lambda x: x[1])[0]
+            nueva_generacion.append(mejor_solucion)
         while len(nueva_generacion) < self.tamano_poblacion:
             padres = self.seleccionar_padres(evaluaciones)
-            hijo1, hijo2 = self.cruzar_padres(padres[0], padres[1])
-            hijo1_mutado = self.mutar(hijo1)
-            hijo2_mutado = self.mutar(hijo2)
+            hijos = self.cruzar_padres(padres[0], padres[1])
+            hijo1_mutado = self.mutar(hijos[0])
+            hijo2_mutado = self.mutar(hijos[1])
             nueva_generacion.extend([hijo1_mutado, hijo2_mutado])
         return nueva_generacion
-    
+
     def ejecutar(self):
         poblacion = self.inicializar_poblacion()
         mejor_aptitud_por_generacion = []
@@ -94,31 +81,43 @@ class AlgoritmoGenetico:
             mejor_aptitud = min(evaluaciones, key=lambda x: x[1])[1]
             mejor_aptitud_por_generacion.append(mejor_aptitud)
             poblacion = self.reemplazar_generacional(poblacion, evaluaciones)
-        return mejor_aptitud_por_generacion
+        return poblacion, mejor_aptitud_por_generacion
 
-def graficar_evolucion(funcion_objetivo, longitud_cromosoma, titulo):
-    ag = AlgoritmoGenetico(funcion_objetivo, longitud_cromosoma)
-    mejor_aptitud_por_generacion = ag.ejecutar()
+def graficar_evolucion(funcion_objetivo, dominio, titulo):
+    ag = AlgoritmoGenetico(funcion_objetivo, dominio)
+    _, mejor_aptitud_por_generacion = ag.ejecutar()
     plt.plot(mejor_aptitud_por_generacion)
     plt.title(titulo)
     plt.xlabel("Generación")
     plt.ylabel("Mejor Aptitud")
     plt.show()
+    return mejor_aptitud_por_generacion
 
-def ejecutar_experimentos(funciones, num_ejecuciones=30):
+def ejecutar_experimentos(funciones, dominios, num_ejecuciones=30):
     resultados = {}
     for nombre_funcion, funcion in funciones.items():
         resultados[nombre_funcion] = {"mejor": float('inf'), "peor": float('-inf'), "promedio": 0}
+        promedios = []
         for _ in range(num_ejecuciones):
-            ag = AlgoritmoGenetico(nombre_funcion, 10)
-            mejor_aptitud = min(ag.ejecutar())
+            ag = AlgoritmoGenetico(funcion, dominios[nombre_funcion])
+            _, mejor_aptitud_por_generacion = ag.ejecutar()
+            mejor_aptitud = min(mejor_aptitud_por_generacion)
             resultados[nombre_funcion]["mejor"] = min(resultados[nombre_funcion]["mejor"], mejor_aptitud)
             resultados[nombre_funcion]["peor"] = max(resultados[nombre_funcion]["peor"], mejor_aptitud)
-            resultados[nombre_funcion]["promedio"] += mejor_aptitud
-        resultados[nombre_funcion]["promedio"] /= num_ejecuciones
+            promedios.append(mejor_aptitud)
+        resultados[nombre_funcion]["promedio"] = sum(promedios) / num_ejecuciones
     return resultados
 
-# Definir las funciones de prueba
+
+dominios = {
+    "sphere": (-5.12, 5.12),
+    "rastrigin": (-5.12, 5.12),
+    "ackley": (-30, 30),
+    "griewank": (-600, 600),
+    "rosenbrock": (-2.048, 2.048)
+}
+
+
 funciones = {
     "sphere": Funciones.sphere,
     "rastrigin": Funciones.rastrigin,
@@ -127,14 +126,13 @@ funciones = {
     "rosenbrock": Funciones.rosenbrock
 }
 
-# Ejecutar el algoritmo genético múltiples veces y mostrar resultados estadísticos
-resultados = ejecutar_experimentos(funciones)
-print("\nResultados estadísticos:")
-print("{:<10} {:<10} {:<10} {:<10}".format("Función", "Mejor", "Peor", "Promedio"))
-for nombre_funcion, res in resultados.items():
-    print("{:<10} {:<10.2f} {:<10.2f} {:<10.2f}".format(nombre_funcion, res["mejor"], res["peor"], res["promedio"]))
-
 
 for nombre_funcion, funcion in funciones.items():
-    titulo = f"Evolución de {nombre_funcion}"
-    graficar_evolucion(nombre_funcion, 10, titulo)
+    titulo = f"Evolución de Aptitud para {nombre_funcion}"
+    mejor_aptitud_por_generacion = graficar_evolucion(funcion, dominios[nombre_funcion], titulo)
+
+print("\nResultados estadísticos:")
+print("{:<10} {:<10} {:<10} {:<10}".format("Función", "Mejor", "Peor", "Promedio"))
+resultados = ejecutar_experimentos(funciones, dominios)
+for nombre_funcion, res in resultados.items():
+    print("{:<10} {:<10.2f} {:<10.2f} {:<10.2f}".format(nombre_funcion, res["mejor"], res["peor"], res["promedio"]))
