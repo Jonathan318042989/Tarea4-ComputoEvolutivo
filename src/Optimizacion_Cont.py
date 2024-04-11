@@ -149,13 +149,22 @@ funciones = {
 }
 
 
-for nombre_funcion, funcion in funciones.items():
-    titulo = f"Evolución de Aptitud para {nombre_funcion}"
-    mejor_aptitud_por_generacion, mejor, peor, promedio = graficar_evolucion(funcion, dominios[nombre_funcion], titulo)
-    print(f"Función {nombre_funcion}. Mejor: {mejor}. Peor: {peor}. Promedio: {promedio}")
+if __name__ == "__main__":
+    import sys
 
-""" print("\nResultados estadísticos:")
-print("{:<10} {:<10} {:<10} {:<10}".format("Función", "Mejor", "Peor", "Promedio"))
-resultados = ejecutar_experimentos(funciones, dominios)
-for nombre_funcion, res in resultados.items():
-    print("{:<10} {:<10.2f} {:<10.2f} {:<10.2f}".format(nombre_funcion, res["mejor"], res["peor"], res["promedio"])) """
+    if len(sys.argv) != 2:
+        print("Uso: python Optimizacion_Cont.py <funcion>")
+        sys.exit(1)
+
+    funcion_seleccionada = sys.argv[1]
+
+    if funcion_seleccionada not in funciones:
+        print("La función seleccionada no está disponible.")
+        sys.exit(1)
+
+    funcion_objetivo = funciones[funcion_seleccionada]
+    dominio = dominios[funcion_seleccionada]
+
+    titulo = f"Evolución de Aptitud para {funcion_seleccionada}"
+    mejor_aptitud_por_generacion, mejor, peor, promedio = graficar_evolucion(funcion_objetivo, dominio, titulo)
+    print(f"Función {funcion_seleccionada}. Mejor: {mejor}. Peor: {peor}. Promedio: {promedio}")
