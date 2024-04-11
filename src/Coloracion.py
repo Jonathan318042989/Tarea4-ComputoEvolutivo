@@ -1,5 +1,6 @@
 import numpy as np
 import sys
+from Graficacion import Graficacion
 
 class Coloracion:
 
@@ -297,7 +298,7 @@ class Coloracion:
         return mejor_solucion, mejor_evaluacion
                 
     
-    def realiza_busqueda(self, busqueda, iteraciones):
+    def realiza_busqueda(self, busqueda, iteraciones, tamanio_poblacion = 50):
         """ Función para realizar la búsqueda especificada
 
         Args:
@@ -313,19 +314,18 @@ class Coloracion:
         elif busqueda == "iterada":
             solucion_iterada = self.busqueda_local_iterada(iteraciones=iteraciones)
             print(f"Resultado de la busqueda local iterada: {solucion_iterada} con evaluacion de {self.funcion_evaluacion(solucion_iterada)}")
+        elif busqueda == "genetica":
+            solucion_genetica, evaluacion = self.algoritmo_genetico(tamanio_poblacion, iteraciones)
+            print(f"Resultado del algoritmo genetico con tamaño de poblacion: {tamanio_poblacion}, iteraciones: {iteraciones} \n Mejor individuo encontrado {solucion_genetica} con usa evaluación de: {evaluacion}")
+            Graficacion.grafica_txt("Ejecucion.txt", "Coloracion", iteraciones)
         else:
             print("Para seleccionar una busqueda debe escribir aleatoria o escalada")
-            
-coloracion = Coloracion.leer_archivo("Grafo.txt")
-ind,eva = coloracion.algoritmo_genetico(50,1000)
-print(ind + " " + eva)
-        
-"""
+
 if __name__ == "__main__":
-    """"""Main donde se procesará el archivo ingresado y realizará la búsqueda especificada
-    """"""
-    if len(sys.argv) < 3:
-        print("Uso: python Coloracion.py <nombre_archivo> <busqueda>")
+    """Main donde se procesará el archivo ingresado y realizará la búsqueda especificada
+    """
+    if len(sys.argv) < 4 or len(sys.argv) > 5:
+        print("Uso: python Coloracion.py <nombre_archivo> <busqueda> <iteraciones>")
     else:
         nombre_archivo = sys.argv[1]
         busqueda = sys.argv[2]
@@ -333,6 +333,8 @@ if __name__ == "__main__":
         #print(f"Representacion de la gráfica: \n {coloracion.grafica}")
         if len(sys.argv) == 4:
             coloracion.realiza_busqueda(busqueda, int(sys.argv[3]))
+        elif len(sys.argv) == 5:
+            coloracion.realiza_busqueda(busqueda, int(sys.argv[3]), int(sys.argv[4]))
         else:
             coloracion.realiza_busqueda(busqueda, 1000)
-            """  
+        
