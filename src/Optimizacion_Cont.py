@@ -7,15 +7,29 @@ from Codificacion import Codificacion
 
 class AlgoritmoGenetico:
     
-    def __init__(self, funcion_objetivo, longitud_cromosoma, dominio, tamano_poblacion=100, num_generaciones=100, prob_mutacion=0.1, elitismo=True):
-        self.funcion_objetivo = funcion_objetivo
+    def __init__(self, nombre_funcion, longitud_cromosoma, tamano_poblacion=100, num_generaciones=100, prob_mutacion=0.1, elitismo=True):
+        self.nombre_funcion = nombre_funcion
+        self.funcion_objetivo = funciones[nombre_funcion]
         self.longitud_cromosoma = longitud_cromosoma
-        self.dominio = dominio
+        self.dominio = self.obtener_dominio(nombre_funcion)
         self.tamano_poblacion = tamano_poblacion
         self.num_generaciones = num_generaciones
         self.prob_mutacion = prob_mutacion
         self.elitismo = elitismo
+        
     
+    def obtener_dominio(self, nombre_funcion):
+        if nombre_funcion in ["sphere", "rastrigin"]:
+            return Funciones.dominio_sphere_rastrigin
+        elif nombre_funcion == "ackley":
+            return Funciones.dominio_ackley
+        elif nombre_funcion == "griewank":
+            return Funciones.dominio_griewank
+        elif nombre_funcion == "rosenbrock":
+            return Funciones.dominio_rosenbrock
+        else:
+            raise ValueError("Función no reconocida")
+
     def inicializar_poblacion(self):
         poblacion = []
         for _ in range(self.tamano_poblacion):
@@ -44,7 +58,6 @@ class AlgoritmoGenetico:
                     break
         return padres_seleccionados
 
-    
     def cruzar_padres(self, padre1, padre2):
         punto_cruza = random.randint(1, self.longitud_cromosoma - 1)
         hijo1 = padre1[:punto_cruza] + padre2[punto_cruza:]
@@ -97,7 +110,7 @@ def ejecutar_experimentos(funciones, num_ejecuciones=30):
     for nombre_funcion, funcion in funciones.items():
         resultados[nombre_funcion] = {"mejor": float('inf'), "peor": float('-inf'), "promedio": 0}
         for _ in range(num_ejecuciones):
-            ag = AlgoritmoGenetico(funcion, 10, (-5.12, 5.12))
+            ag = AlgoritmoGenetico(nombre_funcion, 10)
             mejor_aptitud = min(ag.ejecutar())
             resultados[nombre_funcion]["mejor"] = min(resultados[nombre_funcion]["mejor"], mejor_aptitud)
             resultados[nombre_funcion]["peor"] = max(resultados[nombre_funcion]["peor"], mejor_aptitud)
@@ -105,7 +118,7 @@ def ejecutar_experimentos(funciones, num_ejecuciones=30):
         resultados[nombre_funcion]["promedio"] /= num_ejecuciones
     return resultados
 
-
+# Definir las funciones de prueba
 funciones = {
     "sphere": Funciones.sphere,
     "rastrigin": Funciones.rastrigin,
@@ -124,4 +137,4 @@ for nombre_funcion, res in resultados.items():
 
 for nombre_funcion, funcion in funciones.items():
     titulo = f"Evolución de {nombre_funcion}"
-    graficar_evolucion(funcion, 10, (-5.12, 5.12), titulo)
+    graficar_evolucion(funcion, 10, None, titulo)
