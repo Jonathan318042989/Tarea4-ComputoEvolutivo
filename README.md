@@ -5,6 +5,14 @@
 
 ### Ejecución
 
+Algoritmo de Optimización Continua:
+
+    $ python Optimizacion_Cont.py <funcion>
+
+Ejemplos:
+
+    $ python Optimizacion_Cont.py sphere
+
 Algoritmo genético para Coloración:
 
     $ python src/Coloracion.py <nombre_archivo> <busqueda> <iteraciones(opcional)> <población(solo genético)>
