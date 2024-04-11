@@ -76,11 +76,16 @@ class Coloracion:
             (array(int)): Arreglo con la mejor solucion generada aleatoriamente
         """
         mejor_solucion = np.random.randint(1, self.vertices+1, self.vertices)
+        promedio = self.funcion_evaluacion(mejor_solucion)
+        peor = 0
         for _ in range(iteraciones):
             solucion_actual = np.random.randint(1,self.vertices+1,self.vertices)
             if self.funcion_evaluacion(solucion_actual) <= self.funcion_evaluacion(mejor_solucion):
                 mejor_solucion = solucion_actual
-        return mejor_solucion
+            elif peor < self.funcion_evaluacion(solucion_actual):
+                peor = self.funcion_evaluacion(solucion_actual)
+            promedio += self.funcion_evaluacion(solucion_actual)
+        return mejor_solucion, self.funcion_evaluacion(mejor_solucion), peor, promedio/iteraciones
     
     def funcion_vecindad(self, solucion_actual):
         """ Funcion que selecciona al primer vecino "mejorado"
@@ -120,9 +125,15 @@ class Coloracion:
             array(int): Arreglo con la mejor solucion encontrada
         """
         mejor_solucion = np.random.randint(1, self.vertices+1, self.vertices)
+        promedio = self.funcion_evaluacion(mejor_solucion)
+        peor = promedio
         for _ in range(iteraciones):
             mejor_solucion = self.funcion_vecindad(mejor_solucion)
-        return mejor_solucion
+            evaluacion = self.funcion_evaluacion(mejor_solucion)
+            if peor < evaluacion:
+                peor = evaluacion
+            promedio += evaluacion
+        return mejor_solucion, self.funcion_evaluacion(mejor_solucion), peor, promedio/iteraciones
     
     def  busqueda_local_iterada(self, iteraciones=1000):
         """ Funcion para realizar una busqueda local iterada
@@ -134,12 +145,18 @@ class Coloracion:
             array(int): Arreglo con la mejor solución encontrada
         """
         mejor_solucion = np.random.randint(1, self.vertices+1, self.vertices)
+        promedio = self.funcion_evaluacion(mejor_solucion)
+        peor = promedio
         for _ in range(iteraciones):
             solucion_modificada = self.perturbacion(mejor_solucion)
             mejor_solucion_local = self.funcion_vecindad(solucion_modificada)
-            if self.funcion_evaluacion(mejor_solucion_local) <= self.funcion_evaluacion(mejor_solucion):
+            evaluacion_actual = self.funcion_evaluacion(mejor_solucion_local)
+            if evaluacion_actual <= self.funcion_evaluacion(mejor_solucion):
                 mejor_solucion = mejor_solucion_local
-        return mejor_solucion
+            elif peor < evaluacion_actual:
+                peor = evaluacion_actual
+            promedio += evaluacion_actual
+        return mejor_solucion, self.funcion_evaluacion(mejor_solucion), peor, promedio/iteraciones
             
     def perturbacion(self, solucion_actual):
         """Función para modificar la solución actual, toma cierto
@@ -210,6 +227,21 @@ class Coloracion:
                 mejor_evaluacion = evaluacion
                 mejor_individuo = i
         return mejor_individuo
+
+    def encuentra_peor_evaluacion(self, poblacion, peor_evaluacion):
+        """Funcion para encontrar la peor evaluacion de la solucion actual
+
+        Args:
+            poblacion (array(array(int))): Poblacion actual
+
+        Returns:
+            int: Evaluación de la peor solucion
+        """
+        for i in poblacion:
+            evaluacion = self.funcion_evaluacion(i)
+            if evaluacion > peor_evaluacion:
+                peor_evaluacion = evaluacion
+        return peor_evaluacion
         
     def cruza_padres(self, padre1, padre2):
         """Cruza a los padres para generar a los hijos
@@ -275,6 +307,12 @@ class Coloracion:
             hijos.append(hijo2)
         return hijos
             
+    def calcula_promedio(self, poblacion):
+        promedio = 0
+        for i in poblacion:
+            promedio += self.funcion_evaluacion(i)
+        promedio = promedio/len(poblacion)
+        return promedio
         
     def algoritmo_genetico(self, tamanio_poblacion, iteraciones=1000):
         """Funcion que ejecuta el algoritmo genetico para coloracion
@@ -289,13 +327,17 @@ class Coloracion:
         file = open('Ejecucion.txt', 'w')
         poblacion = self.genera_poblacion_inicial(tamanio_poblacion)
         mejor_solucion = None
+        peor_evaluacion = 0
+        promedio_evaluacion = 0
         for i in range(iteraciones):
             mejor_solucion = self.selecciona_mejor_individuo(poblacion)
+            peor_evaluacion = self.encuentra_peor_evaluacion(poblacion, peor_evaluacion)
+            promedio_evaluacion = (self.calcula_promedio(poblacion) + promedio_evaluacion)/2
             mejor_evaluacion = self.funcion_evaluacion(mejor_solucion)
             file.write(str(i) + " " + str(mejor_evaluacion) + "\n")
             poblacion = self.genera_siguiente_poblacion(poblacion)
         file.close()
-        return mejor_solucion, mejor_evaluacion
+        return mejor_solucion, mejor_evaluacion, peor_evaluacion, promedio_evaluacion
                 
     
     def realiza_busqueda(self, busqueda, iteraciones, tamanio_poblacion = 50):
@@ -306,17 +348,17 @@ class Coloracion:
             iteraciones (int): Iteraciones a realizar en la búsqueda
         """
         if busqueda == "aleatoria":
-            solucion_aleatoria = self.soluciones_aleatorias(iteraciones=iteraciones)
-            print(f"Resultado de la busqueda aleatoria: {solucion_aleatoria}  con evaluacion de {self.funcion_evaluacion(solucion_aleatoria)}")
+            solucion_aleatoria, evaluacion, peor, promedio = self.soluciones_aleatorias(iteraciones=iteraciones)
+            print(f"Resultado de la busqueda aleatoria, iteraciones: {iteraciones}. Mejor solucion: {solucion_aleatoria} con evaluacion de {evaluacion}. Peor: {peor} Promedio: {promedio}")
         elif busqueda == "escalada":
-            solucion_escalada = self.busqueda_escalada(iteraciones=iteraciones)
-            print(f"Resultado de la busqueda por escalada: {solucion_escalada} con evaluacion de {self.funcion_evaluacion(solucion_escalada)}")
+            solucion_escalada, evaluacion, peor, promedio = self.busqueda_escalada(iteraciones=iteraciones)
+            print(f"Resultado de la busqueda por escalada, iteraciones: {iteraciones}. Mejor solucion: {solucion_escalada} con evaluacion de {evaluacion}. Peor: {peor} Promedio: {promedio}")
         elif busqueda == "iterada":
-            solucion_iterada = self.busqueda_local_iterada(iteraciones=iteraciones)
-            print(f"Resultado de la busqueda local iterada: {solucion_iterada} con evaluacion de {self.funcion_evaluacion(solucion_iterada)}")
+            solucion_iterada, evaluacion, peor, promedio = self.busqueda_local_iterada(iteraciones=iteraciones)
+            print(f"Resultado de la busqueda local iterada, iteraciones: {iteraciones}. Mejor solucion: {solucion_iterada} con evaluacion de {evaluacion}. Peor: {peor} Promedio: {promedio}")
         elif busqueda == "genetica":
-            solucion_genetica, evaluacion = self.algoritmo_genetico(tamanio_poblacion, iteraciones)
-            print(f"Resultado del algoritmo genetico con tamaño de poblacion: {tamanio_poblacion}, iteraciones: {iteraciones} \n Mejor individuo encontrado {solucion_genetica} con usa evaluación de: {evaluacion}")
+            solucion_genetica, evaluacion, peor, promedio = self.algoritmo_genetico(tamanio_poblacion, iteraciones)
+            print(f"Resultado del algoritmo genetico con tamaño de poblacion: {tamanio_poblacion}, iteraciones: {iteraciones} \n Mejor individuo encontrado {solucion_genetica} con una evaluación de: {evaluacion}. Peor: {peor} Promedio: {promedio}")
             Graficacion.grafica_txt("Ejecucion.txt", "Coloracion", iteraciones)
         else:
             print("Para seleccionar una busqueda debe escribir aleatoria o escalada")
