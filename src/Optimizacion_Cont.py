@@ -2,55 +2,8 @@ import random
 import math
 import numpy as np
 import matplotlib.pyplot as plt
-
-class Funciones:
-    
-    @staticmethod
-    def rosenbrock(valores):
-        suma = 0
-        for i in range(len(valores) - 1):
-            term1 = 100 * (valores[i + 1] - valores[i] ** 2) ** 2
-            term2 = (valores[i] - 1) ** 2
-            suma += term1 + term2
-        return suma
-    
-    @staticmethod
-    def sphere(valores):
-        suma = 0
-        for i in range(len(valores)):
-            suma += valores[i] ** 2
-        return suma
-
-    @staticmethod
-    def rastrigin(valores):
-        suma = 10 * len(valores)
-        for i in range(len(valores)):
-            suma += valores[i] ** 2
-            suma -= 10 * math.cos(2 * math.pi * valores[i])
-        return suma
-    
-    @staticmethod
-    def ackley(valores):
-        suma1 = 0
-        suma2 = 0 
-        for i in range(len(valores)):
-            suma1 += valores[i]**2
-        for i in range(len(valores)):
-            suma2 += math.cos(2 * math.pi * valores[i])
-        resultado = 20 + math.e - 20*np.exp(-0.2*(math.sqrt(suma1/len(valores)))) - np.exp(suma2/len(valores))
-        return resultado
-    
-    @staticmethod
-    def griewank(valores):
-        suma = 0
-        for i in range(len(valores)):
-            suma += (valores[i]**2)/4000
-        multi = 1
-        for i in range(len(valores)):
-            if i != 0:
-                multi *= math.cos(valores[i]/math.sqrt(i))
-        resultado = 1 + suma - multi
-        return resultado
+from Funciones import Funciones
+from Codificacion import Codificacion
 
 class AlgoritmoGenetico:
     
@@ -73,23 +26,24 @@ class AlgoritmoGenetico:
     def evaluar_poblacion(self, poblacion):
         evaluaciones = []
         for cromosoma in poblacion:
-            valores = self.decodificar_cromosoma(cromosoma)
+            valores = Codificacion.decodifica_vector(cromosoma, self.longitud_cromosoma, *self.dominio)
             evaluacion = self.funcion_objetivo(valores)
             evaluaciones.append((cromosoma, evaluacion))
         return evaluaciones
     
     def seleccionar_padres(self, evaluaciones):
-        total_fitness = sum(1 / evaluacion[1] for evaluacion in evaluaciones)
+        total_fitness = sum(1 / evaluacion[1] if evaluacion[1] != 0 else 1 for evaluacion in evaluaciones)
         padres_seleccionados = []
         while len(padres_seleccionados) < 2:
             punto = random.uniform(0, total_fitness)
             acumulado = 0
             for cromosoma, evaluacion in evaluaciones:
-                acumulado += 1 / evaluacion
+                acumulado += 1 / evaluacion if evaluacion != 0 else 1
                 if acumulado > punto:
                     padres_seleccionados.append(cromosoma)
                     break
         return padres_seleccionados
+
     
     def cruzar_padres(self, padre1, padre2):
         punto_cruza = random.randint(1, self.longitud_cromosoma - 1)
@@ -118,16 +72,6 @@ class AlgoritmoGenetico:
             hijo2_mutado = self.mutar(hijo2)
             nueva_generacion.extend([hijo1_mutado, hijo2_mutado])
         return nueva_generacion
-    
-    def decodificar_cromosoma(self, cromosoma):
-        longitud_seccion = len(cromosoma) // len(self.dominio)
-        valores = []
-        for i in range(0, len(cromosoma), longitud_seccion):
-            seccion = cromosoma[i:i+longitud_seccion]
-            valor_decimal = int(seccion, 2)
-            valor_real = self.dominio[0] + (valor_decimal / (2**longitud_seccion - 1)) * (self.dominio[1] - self.dominio[0])
-            valores.append(valor_real)
-        return valores
     
     def ejecutar(self):
         poblacion = self.inicializar_poblacion()
@@ -161,7 +105,7 @@ def ejecutar_experimentos(funciones, num_ejecuciones=30):
         resultados[nombre_funcion]["promedio"] /= num_ejecuciones
     return resultados
 
-# Definir las funciones de prueba
+
 funciones = {
     "sphere": Funciones.sphere,
     "rastrigin": Funciones.rastrigin,
